@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+
+    <title>LamaRide</title>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon180.png" />
+
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="LamaRide" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  </head>
+  <body>
+    <main>
+      <header class="appHeader">
+        <div class="headerTop">
+          <div class="brand">
+            <img src="icon180.png" alt="LamaRide logo" class="brandLogo" />
+
+            <div>
+              <h1>LamaRide</h1>
+              <p class="subtitle">2026 Sæsonen</p>
+            </div>
+          </div>
+
+          <button id="openSettings" class="settingsBtn" type="button">
+            ⚙️
+          </button>
+        </div>
+
+        <div class="heroStats">
+          <div class="heroStat">
+            <div class="label">Ture i år</div>
+            <div class="value" id="yearTripsLog">0</div>
+          </div>
+
+          <div class="heroStat">
+            <div class="label">Km i år</div>
+            <div class="value" id="yearKmLog">0</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="tabs">
+        <button class="tab active" type="button" data-tab="0">Log</button>
+        <button class="tab" type="button" data-tab="1">Statistik</button>
+        <button class="tab" type="button" data-tab="2">Brændstof</button>
+        <button class="tab" type="button" data-tab="3">Service</button>
+      </div>
+
+      <div class="section active" id="tab0">
+        <div class="card">
+          <h3>Ny tur</h3>
+          <input type="date" id="date" />
+          <input
+            type="text"
+            id="odo"
+            placeholder="Km-tællerstand"
+            inputmode="numeric"
+            pattern="[0-9]*"
+          />
+          <div class="photoKm">
+            <input
+              class="kmPhotoInput"
+              type="file"
+              id="tripOdoCamera"
+              accept="image/*"
+              capture="environment"
+              data-km-target="odo"
+              data-message-target="saveMessage"
+            />
+            <input
+              class="kmPhotoInput"
+              type="file"
+              id="tripOdoLibrary"
+              accept="image/*"
+              data-km-target="odo"
+              data-message-target="saveMessage"
+            />
+            <label class="photoKmBtn" for="tripOdoCamera">Kamera</label>
+            <label class="photoKmBtn secondary" for="tripOdoLibrary">Fotos</label>
+          </div>
+          <textarea id="note" placeholder="Note"></textarea>
+          <label for="tripPhotos">Turfotos</label>
+          <input
+            class="fileInput"
+            type="file"
+            id="tripPhotos"
+            accept="image/*"
+            multiple
+          />
+          <button id="saveTripBtn" type="button">Gem tur</button>
+          <div id="saveMessage" class="message"></div>
+        </div>
+
+        <div class="card">
+          <div class="cardTitleRow">
+            <h3>Loggede ture</h3>
+            <button id="undoTripBtn" class="undoSmallBtn" type="button">
+              Fortryd
+            </button>
+          </div>
+          <div class="tripRow tripHead">
+            <div>#</div>
+            <div>Distance</div>
+            <div>Dato</div>
+            <div>Km</div>
+          </div>
+          <div id="logTripList"></div>
+        </div>
+      </div>
+
+      <div class="section" id="tab1">
+        <div class="card">
+          <label for="yearSelect">Vælg år</label>
+          <select id="yearSelect"></select>
+        </div>
+
+        <div class="card">
+          <div class="statsRow">
+            <div class="statBoxLight">
+              <div class="smallLabel">Km i valgte periode</div>
+              <div class="stat" id="totalKm">0</div>
+            </div>
+            <div class="statBoxLight">
+              <div class="smallLabel">Ture</div>
+              <div class="stat" id="totalTrips">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Graf pr. måned</h3>
+          <div id="monthChart" class="chart"></div>
+        </div>
+
+        <div class="card">
+          <h3>Månedsoversigt</h3>
+          <div id="monthOverview" class="monthList"></div>
+        </div>
+
+        <div class="card">
+          <h3>Ture i perioden</h3>
+          <div class="tripRow tripHead">
+            <div>#</div>
+            <div>Distance</div>
+            <div>Dato</div>
+            <div>Km</div>
+          </div>
+          <div id="list"></div>
+        </div>
+      </div>
+
+      <div class="section" id="tab2">
+        <div class="card">
+          <div class="cardTitleRow">
+  <h3>Ny Tankning</h3>
+  
+</div>
+          <input type="date" id="fuelDate" />
+          <input
+            type="text"
+            id="fuelOdo"
+            placeholder="Km-stand"
+            inputmode="numeric"
+            pattern="[0-9]*"
+          />
+          <div class="photoKm">
+            <input
+              class="kmPhotoInput"
+              type="file"
+              id="fuelOdoCamera"
+              accept="image/*"
+              capture="environment"
+              data-km-target="fuelOdo"
+              data-message-target="fuelMessage"
+            />
+            <input
+              class="kmPhotoInput"
+              type="file"
+              id="fuelOdoLibrary"
+              accept="image/*"
+              data-km-target="fuelOdo"
+              data-message-target="fuelMessage"
+            />
+            <label class="photoKmBtn" for="fuelOdoCamera">Kamera</label>
+            <label class="photoKmBtn secondary" for="fuelOdoLibrary">Fotos</label>
+          </div>
+          <input type="number" id="fuelLiters" placeholder="Liter tanket" />
+          <input type="number" id="fuelPrice" placeholder="Pris total" />
+          <button id="saveFuelBtn" type="button">Gem optankning</button>
+          <div id="fuelMessage" class="message"></div>
+        </div>
+
+        <div class="card">
+  <div class="statsRow">
+    <div class="statBoxLight">
+      <div class="smallLabel">Gns. km/l</div>
+      <div class="stat" id="avgKml">0</div>
+    </div>
+
+    <div class="statBoxLight">
+      <div class="smallLabel">Kr/km</div>
+      <div class="stat" id="costPerKm">0</div>
+    </div>
+
+    <div class="statBoxLight">
+      <div class="smallLabel">Brændstof i alt</div>
+      <div class="stat" id="totalFuelCost">0 kr</div>
+    </div>
+  </div>
+</div>
+
+        <div class="card">
+          
+          <div class="cardTitleRow">
+  <h3>Tankninger</h3>
+  <button id="undoFuelBtn" class="undoSmallBtn" type="button">
+    Fortryd
+  </button>
+</div>
+          <div class="tripRow tripHead">
+            <div>#</div>
+            <div>Liter</div>
+            <div>Pris</div>
+            <div>Km</div>
+          </div>
+          <div id="fuelList"></div>
+        </div>
+      </div>
+
+      <div class="section" id="tab3">
+        <div class="card">
+          <h3>Ny service</h3>
+          <input type="date" id="serviceDate" />
+          <input
+            type="text"
+            id="serviceOdo"
+            placeholder="Km-stand"
+            inputmode="numeric"
+            pattern="[0-9]*"
+          />
+          <div class="photoKm">
+            <input
+              class="kmPhotoInput"
+              type="file"
+              id="serviceOdoCamera"
+              accept="image/*"
+              capture="environment"
+              data-km-target="serviceOdo"
+              data-message-target="serviceMessage"
+            />
+            <input
+              class="kmPhotoInput"
+              type="file"
+              id="serviceOdoLibrary"
+              accept="image/*"
+              data-km-target="serviceOdo"
+              data-message-target="serviceMessage"
+            />
+            <label class="photoKmBtn" for="serviceOdoCamera">Kamera</label>
+            <label class="photoKmBtn secondary" for="serviceOdoLibrary">Fotos</label>
+          </div>
+          <select id="serviceType">
+            <option value="Olieskift">Olieskift</option>
+            <option value="Dækskift">Dækskift</option>
+            <option value="Dæktryk">Dæktryk</option>
+            <option value="Kæde">Kæde</option>
+            <option value="Smurt kæde">Smurt kæde</option>
+            <option value="Bremser">Bremser</option>
+            <option value="Vask/pleje">Vask/pleje</option>
+            <option value="Diverse">Diverse</option>
+          </select>
+          <textarea
+            id="serviceNote"
+            placeholder="Hvad er lavet? Fx olie + filter, nyt bagdæk, kontrolleret dæktryk..."
+          ></textarea>
+          <button id="saveServiceBtn" type="button">Gem service</button>
+          <div id="serviceMessage" class="message"></div>
+        </div>
+
+        <div class="card">
+          <h3>Service log</h3>
+          <label for="serviceFilter">Vis</label>
+          <select id="serviceFilter">
+            <option value="all">Alle serviceposter</option>
+            <option value="Olieskift">Olieskift</option>
+            <option value="Dækskift">Dækskift</option>
+            <option value="Dæktryk">Dæktryk</option>
+            <option value="Kæde">Kæde</option>
+            <option value="Smurt kæde">Smurt kæde</option>
+            <option value="Bremser">Bremser</option>
+            <option value="Vask/pleje">Vask/pleje</option>
+            <option value="Diverse">Diverse</option>
+          </select>
+          <div class="tripRow tripHead">
+            <div>#</div>
+            <div>Type</div>
+            <div>Dato</div>
+            <div>Km</div>
+          </div>
+          <div id="serviceList"></div>
+        </div>
+      </div>
+
+      <div class="section" id="tab4">
+        <div class="card actions">
+          <h3>Indstillinger</h3>
+
+          <div class="settingsMenu" id="settingsMenu">
+            <button id="openSpeedometer" type="button">Speedometer</button>
+            <button id="openBackupData" type="button">Backup & Data</button>
+            <button id="openVersion" type="button">Version</button>
+            <button id="privacyBtn" type="button">Privatliv</button>
+          </div>
+
+          <div class="settingsSubPage hidden" id="speedometerPage">
+            <button class="backSettingsBtn" type="button" data-settings-back>
+              ← Tilbage
+            </button>
+
+            <h3>Speedometer</h3>
+
+            <label for="odoFormat">Km-tæller format</label>
+            <select id="odoFormat">
+              <option value="5-tenths">xxxxx,x</option>
+              <option value="6-tenths">xxxxxx,x</option>
+              <option value="auto">Automatisk</option>
+            </select>
+
+            <label class="checkRow" for="hasTripCounter">
+              <input type="checkbox" id="hasTripCounter" />
+              <span>Displayet har triptæller</span>
+            </label>
+
+            <p class="hint">
+              Hvis triptæller er slået til, sorterer billedlæsningen det
+              mindste tal fra, før den foreslår km-standen.
+            </p>
+          </div>
+
+          <div class="settingsSubPage hidden" id="backupDataPage">
+            <button class="backSettingsBtn" type="button" data-settings-back>
+              ← Tilbage
+            </button>
+
+            <h3>Backup & Data</h3>
+            <button id="exportBtn" type="button">Eksportér CSV</button>
+            <p class="hint">
+              Tip: Vælg “Gem i Filer” for at gemme backupfilen i iCloud Drive.
+            </p>
+            <input
+              class="fileInput"
+              type="file"
+              id="importFile"
+              accept=".csv"
+            />
+            <button id="importBtn" type="button">Importér CSV</button>
+            <button id="clearBtn" type="button">Slet alt</button>
+          </div>
+
+          <div class="settingsSubPage hidden" id="versionPage">
+            <button class="backSettingsBtn" type="button" data-settings-back>
+              ← Tilbage
+            </button>
+
+            <h3>Version</h3>
+            <p class="versionText">LamaRide version 3.0.0</p>
+          </div>
+        </div>
+        <div class="card" id="privacyPanel" hidden>
+          <h3>Privatliv</h3>
+
+          <p class="hint">
+            LamaRide gemmer alle dine data lokalt på din egen enhed. Dine ture,
+            kilometer, brændstof og serviceposter sendes ikke til nogen server.
+          </p>
+
+          <p class="hint">
+            Hvis du sletter browserdata, fjerner appen eller skifter telefon,
+            kan dine data gå tabt. Brug eksportfunktionen til at lave en backup.
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

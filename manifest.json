@@ -1,0 +1,15 @@
+{
+  "name": "LamaRide",
+  "short_name": "LamaRide",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f4f1eb",
+  "theme_color": "#171717",
+  "icons": [
+    {
+      "src": "icon180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
