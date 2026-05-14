@@ -493,3 +493,20 @@ input[type="date"] {
   justify-content: center;
   z-index: 9999;
 }
+
+.cloudBox {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 14px;
+  margin: 10px 0 16px;
+  background: var(--soft);
+}
+.cloudBox h4 {
+  margin: 0 0 8px;
+}
+.secondaryBtn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  font-weight: 700;
+}

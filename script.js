@@ -9,6 +9,12 @@ let ocrSettings = {
   odoFormat: "5-tenths",
   hasTripCounter: true,
 };
+let firebaseApp = null;
+let firebaseAuth = null;
+let firebaseDb = null;
+let currentUser = null;
+let cloudSaveTimer = null;
+let isLoadingCloudData = false;
 
 try {
   trips = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -77,6 +83,7 @@ document
   .addEventListener("click", addServiceLog);
 serviceFilterInput.addEventListener("change", renderServiceLogs);
 document.getElementById("exportBtn").addEventListener("click", exportCSV);
+setupCloudBackupButtons();
 document.getElementById("importBtn").addEventListener("click", importCSV);
 document.getElementById("clearBtn").addEventListener("click", clearAll);
 document.querySelectorAll(".kmPhotoInput").forEach((input) => {
@@ -140,6 +147,7 @@ function saveOcrSettings() {
     hasTripCounter: hasTripCounterInput.checked,
   };
   localStorage.setItem(OCR_SETTINGS_KEY, JSON.stringify(ocrSettings));
+  scheduleCloudSave();
 }
 function showTab(index) {
   document
@@ -159,12 +167,234 @@ function createId() {
 }
 function saveTrips() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
+  scheduleCloudSave();
 }
 function saveServiceLogs() {
   localStorage.setItem(SERVICE_STORAGE_KEY, JSON.stringify(serviceLogs));
+  scheduleCloudSave();
 }
 function saveFuelLogs() {
   localStorage.setItem(FUEL_STORAGE_KEY, JSON.stringify(fuelLogs));
+  scheduleCloudSave();
+}
+
+function getFirebaseConfig() {
+  return window.LAMARIDE_FIREBASE_CONFIG || { enabled: false };
+}
+
+function isFirebaseConfigured() {
+  const config = getFirebaseConfig();
+  return Boolean(
+    config.enabled &&
+      config.apiKey &&
+      config.projectId &&
+      !String(config.apiKey).includes("INDSÆT_") &&
+      !String(config.projectId).includes("INDSÆT_"),
+  );
+}
+
+function setupCloudBackupButtons() {
+  const signInBtn = document.getElementById("signInBtn");
+  const signUpBtn = document.getElementById("signUpBtn");
+  const signOutBtn = document.getElementById("signOutBtn");
+  const syncNowBtn = document.getElementById("syncNowBtn");
+
+  if (signInBtn) signInBtn.addEventListener("click", signInWithEmail);
+  if (signUpBtn) signUpBtn.addEventListener("click", signUpWithEmail);
+  if (signOutBtn) signOutBtn.addEventListener("click", signOutCloud);
+  if (syncNowBtn) syncNowBtn.addEventListener("click", saveCloudDataNow);
+
+  initFirebaseCloudBackup();
+}
+
+function initFirebaseCloudBackup() {
+  if (!isFirebaseConfigured()) {
+    setCloudStatus("Cloud backup er klar i koden, men Firebase config mangler.", true);
+    return;
+  }
+
+  if (!window.firebase) {
+    setCloudStatus("Firebase kunne ikke indlæses. Tjek internetforbindelsen.", true);
+    return;
+  }
+
+  try {
+    firebaseApp = firebase.apps.length
+      ? firebase.app()
+      : firebase.initializeApp(getFirebaseConfig());
+    firebaseAuth = firebase.auth();
+    firebaseDb = firebase.firestore();
+
+    firebaseAuth.onAuthStateChanged(async (user) => {
+      currentUser = user;
+      updateAuthUi(user);
+
+      if (user) {
+        setCloudStatus("Logger ind og henter cloud backup...", false);
+        await loadCloudData();
+      } else {
+        setCloudStatus("Log ind for at gemme historikken i skyen.", false);
+      }
+    });
+  } catch (error) {
+    setCloudStatus("Firebase kunne ikke starte: " + error.message, true);
+  }
+}
+
+function getAuthCredentials() {
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+
+  if (!email || !password) {
+    setCloudStatus("Skriv både email og adgangskode.", true);
+    return null;
+  }
+
+  if (password.length < 6) {
+    setCloudStatus("Adgangskoden skal være mindst 6 tegn.", true);
+    return null;
+  }
+
+  return { email, password };
+}
+
+async function signInWithEmail() {
+  if (!firebaseAuth) return;
+  const credentials = getAuthCredentials();
+  if (!credentials) return;
+
+  try {
+    await firebaseAuth.signInWithEmailAndPassword(
+      credentials.email,
+      credentials.password,
+    );
+  } catch (error) {
+    setCloudStatus("Login fejlede: " + getFriendlyAuthError(error), true);
+  }
+}
+
+async function signUpWithEmail() {
+  if (!firebaseAuth) return;
+  const credentials = getAuthCredentials();
+  if (!credentials) return;
+
+  try {
+    await firebaseAuth.createUserWithEmailAndPassword(
+      credentials.email,
+      credentials.password,
+    );
+    await saveCloudDataNow();
+  } catch (error) {
+    setCloudStatus("Konto kunne ikke oprettes: " + getFriendlyAuthError(error), true);
+  }
+}
+
+async function signOutCloud() {
+  if (!firebaseAuth) return;
+  await firebaseAuth.signOut();
+}
+
+function getCloudDocRef() {
+  if (!firebaseDb || !currentUser) return null;
+  return firebaseDb.collection("users").doc(currentUser.uid).collection("backup").doc("lamaride");
+}
+
+function getLocalBackupData() {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    trips,
+    serviceLogs,
+    fuelLogs,
+    ocrSettings,
+  };
+}
+
+async function loadCloudData() {
+  const docRef = getCloudDocRef();
+  if (!docRef) return;
+
+  isLoadingCloudData = true;
+  try {
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      await docRef.set(getLocalBackupData());
+      setCloudStatus("Cloud backup er slået til. Dine lokale data er uploadet.", false);
+      return;
+    }
+
+    const data = snapshot.data() || {};
+    trips = Array.isArray(data.trips) ? data.trips : [];
+    serviceLogs = Array.isArray(data.serviceLogs) ? data.serviceLogs : [];
+    fuelLogs = Array.isArray(data.fuelLogs) ? data.fuelLogs : [];
+    ocrSettings = { ...ocrSettings, ...(data.ocrSettings || {}) };
+
+    normalizeTrips();
+    normalizeServiceLogs();
+    normalizeFuelLogs();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
+    localStorage.setItem(SERVICE_STORAGE_KEY, JSON.stringify(serviceLogs));
+    localStorage.setItem(FUEL_STORAGE_KEY, JSON.stringify(fuelLogs));
+    localStorage.setItem(OCR_SETTINGS_KEY, JSON.stringify(ocrSettings));
+
+    if (odoFormatInput) odoFormatInput.value = ocrSettings.odoFormat;
+    if (hasTripCounterInput) hasTripCounterInput.checked = Boolean(ocrSettings.hasTripCounter);
+
+    updateYearOptions();
+    render();
+    setCloudStatus("Cloud backup er aktiv. Data er hentet fra skyen.", false);
+  } catch (error) {
+    setCloudStatus("Cloud backup kunne ikke hentes: " + error.message, true);
+  } finally {
+    isLoadingCloudData = false;
+  }
+}
+
+function scheduleCloudSave() {
+  if (isLoadingCloudData || !currentUser || !firebaseDb) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(saveCloudDataNow, 700);
+}
+
+async function saveCloudDataNow() {
+  const docRef = getCloudDocRef();
+  if (!docRef) return;
+
+  try {
+    await docRef.set(getLocalBackupData());
+    setCloudStatus("Cloud backup opdateret.", false);
+  } catch (error) {
+    setCloudStatus("Cloud backup fejlede: " + error.message, true);
+  }
+}
+
+function updateAuthUi(user) {
+  const loggedOut = document.getElementById("authLoggedOut");
+  const loggedIn = document.getElementById("authLoggedIn");
+  const userEmail = document.getElementById("authUserEmail");
+
+  if (!loggedOut || !loggedIn) return;
+  loggedOut.hidden = Boolean(user);
+  loggedIn.hidden = !user;
+  if (userEmail) userEmail.textContent = user ? user.email : "";
+}
+
+function setCloudStatus(text, isError) {
+  const element = document.getElementById("cloudStatus");
+  if (!element) return;
+  element.textContent = text;
+  element.style.color = isError ? "#b91c1c" : "#166534";
+}
+
+function getFriendlyAuthError(error) {
+  const code = error && error.code ? error.code : "";
+  if (code.includes("auth/invalid-email")) return "Emailadressen ser forkert ud.";
+  if (code.includes("auth/user-not-found")) return "Der findes ingen konto med den email.";
+  if (code.includes("auth/wrong-password") || code.includes("auth/invalid-credential")) return "Forkert email eller adgangskode.";
+  if (code.includes("auth/email-already-in-use")) return "Der findes allerede en konto med den email.";
+  if (code.includes("auth/weak-password")) return "Adgangskoden er for svag.";
+  return error.message || "Ukendt fejl.";
 }
 
 function normalizeTrips() {

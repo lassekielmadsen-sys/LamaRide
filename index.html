@@ -356,6 +356,25 @@
             </button>
 
             <h3>Backup & Data</h3>
+
+            <div class="cloudBox">
+              <h4>Cloud backup</h4>
+              <p class="hint" id="cloudStatus">Cloud backup er ikke sat op endnu.</p>
+
+              <div id="authLoggedOut">
+                <input type="email" id="authEmail" placeholder="Email" autocomplete="email" />
+                <input type="password" id="authPassword" placeholder="Adgangskode" autocomplete="current-password" />
+                <button id="signInBtn" type="button">Log ind</button>
+                <button id="signUpBtn" type="button" class="secondaryBtn">Opret konto</button>
+              </div>
+
+              <div id="authLoggedIn" hidden>
+                <p class="hint">Logget ind som <strong id="authUserEmail"></strong></p>
+                <button id="syncNowBtn" type="button">Synkronisér nu</button>
+                <button id="signOutBtn" type="button" class="secondaryBtn">Log ud</button>
+              </div>
+            </div>
+
             <button id="exportBtn" type="button">Eksportér CSV</button>
             <p class="hint">
               Tip: Vælg “Gem i Filer” for at gemme backupfilen i iCloud Drive.
@@ -383,8 +402,8 @@
           <h3>Privatliv</h3>
 
           <p class="hint">
-            LamaRide gemmer alle dine data lokalt på din egen enhed. Dine ture,
-            kilometer, brændstof og serviceposter sendes ikke til nogen server.
+            LamaRide gemmer data lokalt på din enhed. Hvis du slår Cloud backup til,
+            bliver ture, kilometer, brændstof og serviceposter også gemt i din egen Firebase-database.
           </p>
 
           <p class="hint">
@@ -396,6 +415,10 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
